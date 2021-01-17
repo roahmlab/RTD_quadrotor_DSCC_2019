@@ -9,8 +9,7 @@ t_plan = 0.75 ;
 t_move = 0.75 ;
 tracking_error_type = 'none' ; % 'none' or 'table' or 'constant'
 use_fmincon = false ;
-% frs_filename = 'quadrotor_FRS_v7_a10_dt0.02.mat' ;
-frs_filename = 'temp_FRS.mat' ;
+frs_filename = 'quadrotor_FRS_v7_a10_dt0.02.mat' ;
 tbl_filename = 'quadrotor_tracking_error_table_dt0.02_vmax_5.25_zonotope.mat' ;
 
 % world
