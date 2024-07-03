@@ -7,7 +7,7 @@ move_method = 'integrator' ; % 'integrator' or 'direct'
 % planner
 t_plan = 0.75 ;
 t_move = 0.75 ;
-tracking_error_type = 'table' ; % 'none' or 'table' or 'constant'
+tracking_error_type = 'none' ; % 'none' or 'table' or 'constant'
 use_fmincon = false ;
 frs_filename = 'quadrotor_FRS_v7_a10_dt0.02.mat' ;
 tbl_filename = 'quadrotor_tracking_error_table_dt0.02_vmax_5.25_zonotope.mat' ;
@@ -28,8 +28,8 @@ obs_opacity = 0.5 ;
 % simulator
 allow_replan_errors = true ;
 verbose_level = 10 ;
-max_sim_time = 1e6 ;
-max_sim_iter = 50 ;
+max_sim_time = 5 ;
+max_sim_iter = 1 ;
 
 % plotting
 line_width = 2 ;
@@ -90,55 +90,27 @@ S = simulator(A,W,P,'verbose',verbose_level,...
     'max_sim_time',max_sim_time,'max_sim_iterations',max_sim_iter,...
     'plot_while_running',plot_while_running) ;
 
+
 %% let it rip
-summary = S.run() ;
+S.run() 
 
-%% stop agent at end
-stop(A)
+%
+% get agent and world ready
+W.reset() ;
+A.reset(W.start) ; 
 
-%% set linewidths
-A.plot_data.body.LineWidth = line_width ;
-A.plot_data.sides.LineWidth = line_width ;
-A.plot_data.rotor.LineWidth = line_width ;
-A.plot_data.reference_trajectory.LineWidth = line_width ;
-A.plot_data.trajectory.LineWidth = line_width ;
+% get planner ready
+agent_info = A.get_agent_info() ;
+world_info = W.get_world_info(agent_info,P) ;
+P.setup(agent_info,world_info) ;
 
-for idx = 1:W.N_obstacles
-    o = W.obstacles{idx} ;
-    o.plot_data.body.LineWidth = line_width ;
-end
+% call planner
+[T_nom,U_nom,Z_nom] = P.replan(agent_info,world_info) ;
+A.move(P.t_move,T_nom,U_nom,Z_nom) ;
 
-%% planning times
-if plot_planning_times
-    figure(2) ; clf ; hold on ;
-    plot(summary.planning_time)
-    N = length(summary.planning_time) ;
-    plot(summary.total_iterations,[P.t_plan, P.t_plan],'r--')
-    xlabel('planning iterations')
-    ylabel('planning time [s]')
-    set(gca,'FontSize',15)
-    ylim([0,P.t_plan+0.1])
-end
+%% plotting
+figure(1) ; cla ; hold on ; axis equal ; axis(W.bounds)
 
-%% report speed
-[v_stats,a_stats] = A.report_speed_and_accel_stats ;
-
-disp(['Speed min/mean/max: ',num2str(v_stats,'%0.2f ')])
-disp(['Accel min/mean/max: ',num2str(a_stats,'%0.2f ')])
-
-%% animation
-if animate_after_run
-    figure(1)
-    clf
-    hold on
-    plot(W)
-    axis equal
-    plot_at_time(A)
-    camlight
-    lighting flat
-    material dull
-    lightangle(10,70)
-    
-    %% animate
-    animate(S,1,1,save_gif)
-end
+plot(A)
+plot(W)
+plot(P)
